@@ -1,0 +1,12 @@
+{
+  "GF_DEATH_POLICY.title": "Death Insurance",
+  "GF_DEATH_POLICY.description": "If you die while insured, clear Energy. Next turn revive at 1 HP, clear buffs and gain 1 extra Energy. A pending claim advances a party wipe to the next turn.",
+  "GF_WORK_POLICY.title": "Workers’ Policy",
+  "GF_WORK_POLICY.description": "The next enemy attack that costs you HP and leaves you alive heals you for 5. The issuer draws 1 extra next turn.",
+  "GF_ECHO_POWER.title": "Same Here",
+  "GF_ECHO_POWER.description": "Match your partner's first card type each turn to give both of you Block.",
+  "GF_APPLAUSE_POWER.title": "Big Spender",
+  "GF_APPLAUSE_POWER.description": "Triggers on an ally actually spending 2 or more Energy on one card, once per turn.",
+  "GF_POT_POWER.title": "Holding the Pot",
+  "GF_POT_POWER.description": "End the turn now to take {Self} damage and deal {Area} to each enemy. Play a card to pass, or skip to keep it."
+}

@@ -1,0 +1,12 @@
+{
+  "GF_DEATH_POLICY.title": "意外死亡保险",
+  "GF_DEATH_POLICY.description": "在保险期限内倒下时能量清零。下回合以 1 点生命复活，清除强化，额外获得 1 点能量。有保单待理赔时，团灭立即进入下回合。",
+  "GF_WORK_POLICY.title": "工伤保单",
+  "GF_WORK_POLICY.description": "下次因敌人攻击失去生命且存活时，回复 5 点生命。出单者下回合多抽 1 张。",
+  "GF_ECHO_POWER.title": "俺也一样",
+  "GF_ECHO_POWER.description": "跟上搭档本回合第一张牌的类型，你们各获格挡。",
+  "GF_APPLAUSE_POWER.title": "老板大气",
+  "GF_APPLAUSE_POWER.description": "队友实际花费至少 2 点能量打牌时触发，每回合一次。",
+  "GF_POT_POWER.title": "持锅",
+  "GF_POT_POWER.description": "现在结束回合，你将受到 {Self} 点伤害，每个敌人受到 {Area} 点伤害。出牌后可传锅或跳过。"
+}

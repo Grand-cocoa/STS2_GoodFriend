@@ -1,0 +1,12 @@
+{
+  "GOOD_FRIEND.take": "拿",
+  "GOOD_FRIEND.yield": "让",
+  "GOOD_FRIEND.lend": "借",
+  "GOOD_FRIEND.decline": "不借",
+  "GOOD_FRIEND.energy": "2 点能量",
+  "GOOD_FRIEND.draw": "抽 2 张牌",
+  "GOOD_FRIEND.block": "6 点格挡",
+  "GOOD_FRIEND.attack": "攻击牌",
+  "GOOD_FRIEND.skill": "技能牌",
+  "GOOD_FRIEND.power": "能力牌"
+}

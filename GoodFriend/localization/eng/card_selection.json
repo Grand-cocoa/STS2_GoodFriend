@@ -1,0 +1,12 @@
+{
+  "GOOD_FRIEND.take": "Take",
+  "GOOD_FRIEND.yield": "Pass",
+  "GOOD_FRIEND.lend": "Lend",
+  "GOOD_FRIEND.decline": "Decline",
+  "GOOD_FRIEND.energy": "2 Energy",
+  "GOOD_FRIEND.draw": "Draw 2",
+  "GOOD_FRIEND.block": "6 Block",
+  "GOOD_FRIEND.attack": "Attack",
+  "GOOD_FRIEND.skill": "Skill",
+  "GOOD_FRIEND.power": "Power"
+}

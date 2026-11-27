@@ -1,0 +1,12 @@
+{
+  "id": "GoodFriend",
+  "name": "好朋友 · Good Friend",
+  "author": "Grand-cocoa",
+  "version": "0.1.2",
+  "description": "20 张为合作爬塔设计的多人牌，以及一个多人牌专属商店槽位。",
+  "min_game_version": "0.114.0",
+  "has_dll": true,
+  "has_pck": true,
+  "affects_gameplay": true,
+  "dependencies": []
+}
