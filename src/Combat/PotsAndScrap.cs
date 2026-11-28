@@ -1,15 +1,10 @@
-using MegaCrit.Sts2.Core.Platform;
-using MegaCrit.Sts2.Core.Runs;
-
 namespace GoodFriend;
 
 public sealed partial class FriendCombat
 {
-    internal sealed class Pot(Player holder, bool upgraded, CardPlay opening)
+    internal sealed class Pot(Player holder, bool upgraded, CardPlay opening) : HotPot<Player>(holder, upgraded)
     {
-        internal Player Holder = holder;
         internal readonly CardPlay Opening = opening;
-        internal readonly PotDamage Damage = new(upgraded);
     }
     internal readonly List<Pot> Pots = [];
     private readonly ScrapClaims<Player, CardModel> _scrap = new();
@@ -22,26 +17,21 @@ public sealed partial class FriendCombat
     }
     private async Task RefreshPot(PlayerChoiceContext ctx, Player holder)
     {
-        int total = Pots.Where(p => p.Holder == holder).Sum(p => p.Damage.Holder);
+        int total = Pots.Where(p => p.Holder == holder).Sum(p => p.HolderDamage);
         var marker = holder.Creature.GetPower<GfPotPower>();
         if (total == 0) { if (marker != null) await PowerCmd.Remove(marker); }
         else if (marker != null) marker.SetAmount(total);
         else await PowerCmd.Apply<GfPotPower>(ctx, holder.Creature, total, holder.Creature, null);
     }
 
-    private async Task OfferPots(PlayerChoiceContext ctx, CardPlay play)
+    private async Task PassPots(PlayerChoiceContext ctx, CardPlay play)
     {
-        Player holder = play.Card.Owner;
+        Player holder = play.Player;
         foreach (var pot in Pots.Where(p => p.Holder == holder && p.Opening != play).ToArray())
         {
-            Player[] others = _combat.Players.Where(p => p != holder && p.Creature.IsAlive).ToArray();
-            if (others.Length == 0 || !holder.Creature.IsAlive) continue;
-            var labels = others.Select(p => p.Character.Title.GetFormattedText() + " · " +
-                PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, p.NetId)).ToArray();
-            int choice = await GfChoice.Choose(ctx, holder, "GF_HOT_POT", labels, allowSkip: true);
-            if (choice < 0 || !others[choice].Creature.IsAlive) continue;
-            pot.Holder = others[choice];
-            pot.Damage.Pass();
+            if (!holder.Creature.IsAlive) return;
+            var living = _combat.Players.Where(p => p.Creature.IsAlive);
+            if (!pot.TryPass(living, p => p.NetId, holder.RunState.Rng.CombatTargets.NextInt)) return;
             await RefreshPot(ctx, holder);
             await RefreshPot(ctx, pot.Holder);
         }
@@ -53,8 +43,8 @@ public sealed partial class FriendCombat
         {
             Pots.Remove(pot);
             await RefreshPot(ctx, pot.Holder);
-            if (pot.Holder.Creature.IsAlive) await FriendCard.Hit(ctx, pot.Holder.Creature, pot.Damage.Holder);
-            foreach (var enemy in _combat.Enemies.Where(c => c.IsAlive).ToArray()) await FriendCard.Hit(ctx, enemy, pot.Damage.Enemies);
+            if (pot.Holder.Creature.IsAlive) await FriendCard.Hit(ctx, pot.Holder.Creature, pot.HolderDamage);
+            foreach (var enemy in _combat.Enemies.Where(c => c.IsAlive).ToArray()) await FriendCard.Hit(ctx, enemy, pot.EnemyDamage);
         }
     }
 

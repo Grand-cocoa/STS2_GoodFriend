@@ -4,9 +4,10 @@
   "GF_WORK_POLICY.title": "工伤保单",
   "GF_WORK_POLICY.description": "下次因敌人攻击失去生命且存活时，回复 5 点生命。出单者下回合多抽 1 张。",
   "GF_ECHO_POWER.title": "俺也一样",
-  "GF_ECHO_POWER.description": "跟上搭档本回合第一张牌的类型，你们各获格挡。",
+  "GF_ECHO_POWER.description": "每回合，搭档在你第一张牌之后打出的第一张牌若与你的牌型相同，你们各获格挡。",
+  "GF_ECHO_POWER.smartDescription": "每回合，若{ApplierName}在{OwnerName}的第一张牌之后打出的第一张牌与其类型相同，两人各获得 {Amount} 点格挡。",
   "GF_APPLAUSE_POWER.title": "老板大气",
   "GF_APPLAUSE_POWER.description": "队友实际花费至少 2 点能量打牌时触发，每回合一次。",
   "GF_POT_POWER.title": "持锅",
-  "GF_POT_POWER.description": "现在结束回合，你将受到 {Self} 点伤害，每个敌人受到 {Area} 点伤害。出牌后可传锅或跳过。"
+  "GF_POT_POWER.description": "你每打出一张牌，锅就随机传给一名存活的队友。全队结束回合时若你仍持锅，你受到 {Self} 点伤害，每个敌人受到 {Area} 点伤害。"
 }

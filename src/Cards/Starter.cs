@@ -1,63 +1,37 @@
 using HarmonyLib;
-using MegaCrit.Sts2.Core.Runs;
 
 namespace GoodFriend;
 
 public static class MultiplayerPool
 {
-    internal static List<CardModel> For(Player player, bool generating)
-    {
-        // Unlocks and the run's actual player count still apply to character-specific co-op cards.
-        return ModelDb.AllCardPools.SelectMany(pool => pool.GetUnlockedCards(player.UnlockState, player.RunState.CardMultiplayerConstraint))
-            .Where(c => c.MultiplayerConstraint == CardMultiplayerConstraint.MultiplayerOnly
-                && c.Rarity is CardRarity.Common or CardRarity.Uncommon or CardRarity.Rare
-                && (!generating || c.CanBeGeneratedInCombat))
-            .DistinctBy(c => c.Id).OrderBy(c => c.Id.Entry, StringComparer.Ordinal).ToList();
-    }
+    internal static IEnumerable<CardModel> Unlocked(Player player, IEnumerable<CardPoolModel> pools) =>
+        pools.SelectMany(pool => pool.GetUnlockedCards(player.UnlockState, player.RunState.CardMultiplayerConstraint))
+            .Where(card => card.MultiplayerConstraint == CardMultiplayerConstraint.MultiplayerOnly && card is not GfCrowd)
+            .DistinctBy(card => card.Id)
+            .OrderBy(card => card.Id.Entry, StringComparer.Ordinal);
 }
 
 public sealed class GfCrowd() : FriendCard(0, CardType.Skill, CardRarity.Basic, TargetType.Self)
 {
-    private bool _transformed;
     public override bool CanBeGeneratedInCombat => false;
     public override bool CanBeGeneratedByModifiers => false;
-    protected override CardLocation GetResultLocationForCardPlay() => new(Owner, PileType.None, CardPilePosition.Bottom);
-    public override async Task BeforeCombatStartLate()
-    {
-        if (Pile?.Type == PileType.Draw && DeckVersion != null && CombatState!.Players.Count > 1)
-            await CardCmd.AutoPlay(new BlockingPlayerChoiceContext(), this, Owner.Creature);
-    }
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
-    {
-        if (_transformed) return;
-        _transformed = true;
-        var pool = MultiplayerPool.For(Owner, true);
-        var result = CombatState!.CreateCard(pool[Owner.RunState.Rng.CombatCardGeneration.NextInt(pool.Count)], Owner);
-        if (IsUpgraded) CardCmd.Upgrade(result);
-        CardCmd.ApplyKeyword(result, CardKeyword.Retain);
-        await CardPileCmd.AddGeneratedCardToCombat(result, PileType.Hand, Owner);
-    }
-}
+    public override IEnumerable<CardKeyword> CanonicalKeywords => [CardKeyword.Innate];
 
-public sealed class StarterGuard : AbstractModel
-{
-    public override bool ShouldReceiveCombatHooks => false;
-    public override bool ShouldAddToDeck(CardModel card) => card is not GfCrowd;
-}
-
-[HarmonyPatch(typeof(RunState), nameof(RunState.CreateForNewRun))]
-internal static class StartingDeckPatch
-{
-    private static void Postfix(RunState __result)
+    public override async Task AfterCardDrawn(PlayerChoiceContext ctx, CardModel card, bool fromHandDraw)
     {
-        if (__result.Players.Count < 2) return;
-        foreach (var player in __result.Players)
-        {
-            if (player.Deck.Cards.Any(c => c is GfCrowd)) continue;
-            var starter = __result.CreateCard<GfCrowd>(player);
-            starter.FloorAddedToDeck = 1;
-            player.Deck.AddInternal(starter, silent: true);
-        }
+        if (card != this) return;
+        await CardPileCmd.Draw(ctx, Owner);
+        if (!IsInCombat || CombatState is not { } combat) return;
+
+        var options = MultiplayerPool.Unlocked(Owner, [Owner.Character.CardPool, Pool])
+            .Where(candidate => candidate.CanBeGeneratedInCombat && candidate.IsAllowedInRun(Owner.RunState));
+        var chosen = Owner.RunState.Rng.CombatCardGeneration.NextItem(options);
+        if (chosen == null) return;
+
+        var replacement = combat.CreateCard(chosen, Owner);
+        if (IsUpgraded) CardCmd.Upgrade(replacement);
+        CardCmd.ApplyKeyword(replacement, CardKeyword.Retain);
+        await CardCmd.Transform(this, replacement);
     }
 }
 

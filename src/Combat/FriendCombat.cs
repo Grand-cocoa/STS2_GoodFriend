@@ -17,11 +17,6 @@ public sealed partial class FriendCombat
     public static FriendCombat For(ICombatState state) => Battles.GetValue(state, s => new FriendCombat(s));
 
     internal record Followup(Player Owner, Creature Target, int Amount, bool Damage);
-    internal sealed record Partner(Player Owner, Player Friend, int Block, int CreatedRound)
-    {
-        internal CardType? Opening;
-        internal bool Used;
-    }
     internal sealed record Applause(Player Owner, bool Upgraded)
     {
         internal int LastRound = -1;
@@ -30,7 +25,6 @@ public sealed partial class FriendCombat
     internal readonly HashSet<Player> PaidWorkers = [];
     internal readonly List<Followup> Followups = [];
     internal readonly List<(Player Owner, int Block)> Lights = [];
-    internal readonly List<Partner> Partners = [];
     internal readonly List<(Player Owner, Player Friend, CardModel Copy, bool Upgraded)> Keyboards = [];
     internal readonly List<(Player Owner, Player Friend)> Potions = [];
     internal readonly List<Applause> ApplauseCards = [];
@@ -101,19 +95,6 @@ public sealed partial class FriendCombat
             Keyboards.Remove(key);
             if (key.Upgraded && key.Owner.Creature.IsAlive) await CardPileCmd.Draw(ctx, key.Owner);
         }
-        foreach (var match in Partners.Where(p => p.CreatedRound < _combat.RoundNumber && !p.Used).ToArray())
-        {
-            if (match.Friend == player) match.Opening ??= card.Type;
-            else if (match.Owner == player && match.Opening.HasValue)
-            {
-                match.Used = true;
-                if (match.Opening == card.Type)
-                {
-                    await Shield(match.Owner, match.Block);
-                    if (match.Friend.Creature.IsAlive) await Shield(match.Friend, match.Block);
-                }
-            }
-        }
         if (play.IsFirstInSeries && play.Resources.EnergySpent >= 2)
         {
             foreach (var perk in ApplauseCards.Where(a => a.Owner != player && a.Owner.Creature.IsAlive
@@ -124,7 +105,7 @@ public sealed partial class FriendCombat
                 if (perk.Upgraded) await Shield(player, 4);
             }
         }
-        await OfferPots(ctx, play);
+        await PassPots(ctx, play);
     }
 
     public async Task AfterPotionUsed(PotionModel potion, Creature? target)
@@ -145,7 +126,6 @@ public sealed partial class FriendCombat
         await ResolveInsurance(ctx);
         _hits.Clear();
         FinalEnergy.Clear();
-        foreach (var m in Partners) { m.Opening = null; m.Used = false; }
         _thisDraw.Clear();
         foreach (var p in state.Players)
             if (participants.Contains(p.Creature) && _nextDraw.Remove(p, out int n)) _thisDraw[p] = n;

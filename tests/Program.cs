@@ -7,17 +7,52 @@ void Expect(bool actual, string scenario)
     checks++;
 }
 
+var host = new Seat(7);
+var guest = new Seat(9);
+Seat[] duo = [host, guest];
+int NoRoll(int _) => throw new InvalidOperationException("A forced pass should not consume combat RNG");
 foreach (bool upgraded in new[] { false, true })
 {
-    var pot = new PotDamage(upgraded);
-    Expect((pot.Holder, pot.Enemies) == (5, 4), "An untouched pot starts at 5 / 4");
-    pot.Pass();
-    Expect((pot.Holder, pot.Enemies) == (upgraded ? (6, 7) : (7, 8)), "First transfer");
-    for (int i = 1; i < 4; i++) pot.Pass();
-    Expect((pot.Holder, pot.Enemies) == (upgraded ? (9, 16) : (13, 20)), "Four passes, including return passes");
-    for (int i = 4; i < 100; i++) pot.Pass();
-    Expect((pot.Holder, pot.Enemies) == (upgraded ? (105, 304) : (205, 404)), "A long chain has no transfer limit");
+    var pot = new HotPot<Seat>(host, upgraded);
+    Expect(!pot.TryPass([host], p => p.Id, NoRoll), "A lone survivor keeps the pot");
+    Expect((pot.HolderDamage, pot.EnemyDamage) == (5, 4), "No transfer leaves both damage totals unchanged");
+    pot.TryPass(duo, p => p.Id, NoRoll);
+    Expect(pot.Holder == guest && (pot.HolderDamage, pot.EnemyDamage) == (upgraded ? (6, 7) : (7, 8)), "First forced pass");
+    for (int i = 1; i < 4; i++) pot.TryPass(duo, p => p.Id, NoRoll);
+    Expect(pot.Holder == host && (pot.HolderDamage, pot.EnemyDamage) == (upgraded ? (9, 16) : (13, 20)), "Four passes, including return passes");
+    for (int i = 4; i < 100; i++) pot.TryPass(duo, p => p.Id, NoRoll);
+    Expect((pot.HolderDamage, pot.EnemyDamage) == (upgraded ? (105, 304) : (205, 404)), "A long chain has no transfer limit");
 }
+
+Seat[] partyOrder = [guest, new(1), host, new(3)];
+Seat[] expectedRecipients = [partyOrder[1], partyOrder[3], guest];
+for (int roll = 0; roll < expectedRecipients.Length; roll++)
+{
+    int Pick(int count)
+    {
+        Expect(count == 3, "In a party of four, only three players can receive the pot");
+        return roll;
+    }
+    var firstClient = new HotPot<Seat>(host, false);
+    var secondClient = new HotPot<Seat>(host, false);
+    firstClient.TryPass(partyOrder, p => p.Id, Pick);
+    secondClient.TryPass(partyOrder.Reverse(), p => p.Id, Pick);
+    Expect(firstClient.Holder == expectedRecipients[roll] && firstClient.Holder == secondClient.Holder,
+        "Both clients resolve each roll to the same teammate");
+}
+
+var echo = new EchoTurn<PlayedType>();
+echo.OpenWith(PlayedType.Attack);
+Expect(!echo.TryReply(PlayedType.Attack), "A partnership starts next turn");
+echo.Begin();
+Expect(!echo.TryReply(PlayedType.Skill), "Playing before the teammate opens does not spend the reply");
+echo.OpenWith(PlayedType.Attack);
+echo.OpenWith(PlayedType.Skill);
+Expect(echo.TryReply(PlayedType.Attack), "A different attack matches the teammate's opening type");
+Expect(!echo.TryReply(PlayedType.Attack), "Each partnership pays once per turn");
+echo.Begin();
+echo.OpenWith(PlayedType.Power);
+Expect(!echo.TryReply(PlayedType.Skill) && !echo.TryReply(PlayedType.Power), "A mismatching first reply spends this turn's chance");
 
 var claims = new InsuranceClaims<string>();
 string[] party = ["Ironclad", "Silent", "Regent", "Defect"];
@@ -48,3 +83,6 @@ scrap.Exhaust("wound-2", true);
 Expect(scrap.Settle().Length == 0, "Unspent marks expire at the end of that turn");
 
 Console.WriteLine($"{checks} battle rule checks passed.");
+
+sealed record Seat(ulong Id);
+enum PlayedType { Attack, Skill, Power }

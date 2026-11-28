@@ -15,7 +15,9 @@ internal static class CoopShop
     private static void Postfix(Player player, List<MerchantCardEntry> __result)
     {
         if (player.RunState.Players.Count < 2) return;
-        var pool = MultiplayerPool.For(player, false);
+        var pool = MultiplayerPool.Unlocked(player, ModelDb.AllCardPools)
+            .Where(card => card.Rarity is CardRarity.Common or CardRarity.Uncommon or CardRarity.Rare)
+            .ToList();
         if (pool.Count == 0) return;
         var extra = new MerchantCardEntry(player, pool, CardRarity.Uncommon);
         Pools.Add(extra, pool);

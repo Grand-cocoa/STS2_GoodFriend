@@ -15,7 +15,7 @@ public sealed class GfChoice() : TransientCard(0, CardType.Skill, TargetType.Sel
     internal static string Text(string key) => new LocString("card_selection", "GOOD_FRIEND." + key).GetFormattedText();
 
     internal static async Task<int> Choose(PlayerChoiceContext ctx, Player chooser, string art,
-        IReadOnlyList<string> captions, bool allowSkip = false, IReadOnlyList<string>? optionArt = null)
+        IReadOnlyList<string> captions, IReadOnlyList<string>? optionArt = null)
     {
         var options = captions.Select((label, index) =>
         {
@@ -26,7 +26,7 @@ public sealed class GfChoice() : TransientCard(0, CardType.Skill, TargetType.Sel
         }).ToList();
         try
         {
-            CardModel? picked = await CardSelectCmd.FromChooseACardScreen(ctx, options, chooser, allowSkip);
+            CardModel? picked = await CardSelectCmd.FromChooseACardScreen(ctx, options, chooser);
             return picked == null ? -1 : options.IndexOf(picked);
         }
         finally
@@ -36,11 +36,10 @@ public sealed class GfChoice() : TransientCard(0, CardType.Skill, TargetType.Sel
     }
 }
 
-public sealed class GfOfferBottle() : FriendCard(1, CardType.Skill, CardRarity.Uncommon, TargetType.AnyAlly)
+public sealed class GfOfferBottle() : TeammateCard(1, CardType.Skill, CardRarity.Uncommon)
 {
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
+    protected override async Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player friend)
     {
-        Player friend = Ally(play);
         string[] labels = [GfChoice.Text("take"), GfChoice.Text("yield")];
         // Resolve nothing until both private choices are committed.
         string[] illustrations = ["GF_TAKE", "GF_YIELD"];
@@ -62,14 +61,13 @@ public sealed class GfOfferBottle() : FriendCard(1, CardType.Skill, CardRarity.U
     protected override void OnUpgrade() => EnergyCost.UpgradeBy(-1);
 }
 
-public sealed class GfBorrow() : FriendCard(0, CardType.Skill, CardRarity.Uncommon, TargetType.AnyAlly)
+public sealed class GfBorrow() : TeammateCard(0, CardType.Skill, CardRarity.Uncommon)
 {
     public override IEnumerable<CardKeyword> CanonicalKeywords => [CardKeyword.Exhaust];
-    protected override bool IsPlayable => CombatState?.Players.Any(p =>
-        p != Owner && p.Creature.IsAlive && p.PlayerCombatState?.Energy >= 1) == true;
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
+    protected override bool CanTargetTeammate(Player teammate) => teammate.PlayerCombatState?.Energy >= 1;
+    protected override bool IsPlayable => CombatState?.Players.Any(p => GetTeammate(p.Creature) != null) == true;
+    protected override async Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player friend)
     {
-        Player friend = Ally(play);
         if (friend.PlayerCombatState?.Energy >= 1 && await GfChoice.Choose(ctx, friend, Art,
                 [GfChoice.Text("lend"), GfChoice.Text("decline")], optionArt: ["GF_LEND", "GF_YIELD"]) == 0 && friend.PlayerCombatState.Energy >= 1)
         {
@@ -83,12 +81,11 @@ public sealed class GfBorrow() : FriendCard(0, CardType.Skill, CardRarity.Uncomm
     }
 }
 
-public sealed class GfSplitRewards() : FriendCard(2, CardType.Skill, CardRarity.Rare, TargetType.AnyAlly)
+public sealed class GfSplitRewards() : TeammateCard(2, CardType.Skill, CardRarity.Rare)
 {
     public override IEnumerable<CardKeyword> CanonicalKeywords => [CardKeyword.Exhaust];
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
+    protected override async Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player friend)
     {
-        var friend = Ally(play);
         int solo = Owner.RunState.Rng.CombatCardSelection.NextInt(3);
         int[] pair = Enumerable.Range(0, 3).Where(i => i != solo).ToArray();
         string[] labels = [GfChoice.Text("energy"), GfChoice.Text("draw"), GfChoice.Text("block")];
@@ -110,15 +107,14 @@ public sealed class GfSplitRewards() : FriendCard(2, CardType.Skill, CardRarity.
     protected override void OnUpgrade() => EnergyCost.UpgradeBy(-1);
 }
 
-public sealed class GfQuiz() : FriendCard(0, CardType.Skill, CardRarity.Uncommon, TargetType.AnyAlly)
+public sealed class GfQuiz() : TeammateCard(0, CardType.Skill, CardRarity.Uncommon)
 {
     public override IEnumerable<CardKeyword> CanonicalKeywords => [CardKeyword.Exhaust];
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
+    protected override async Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player friend)
     {
         CardType[] types = [CardType.Attack, CardType.Skill, CardType.Power];
         int guess = await GfChoice.Choose(ctx, Owner, Art,
             [GfChoice.Text("attack"), GfChoice.Text("skill"), GfChoice.Text("power")]);
-        Player friend = Ally(play);
         CardModel? drawn = friend.Creature.IsAlive ? await CardPileCmd.Draw(ctx, friend) : null;
         if (guess >= 0 && drawn?.Type == types[guess])
         {

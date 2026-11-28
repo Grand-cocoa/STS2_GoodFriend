@@ -1,14 +1,45 @@
 namespace GoodFriend;
 
-internal sealed class PotDamage(bool upgraded)
+internal class HotPot<TPlayer>(TPlayer holder, bool upgraded) where TPlayer : class
 {
-    internal int Holder { get; private set; } = 5;
-    internal int Enemies { get; private set; } = 4;
+    internal TPlayer Holder { get; private set; } = holder;
+    internal int HolderDamage { get; private set; } = 5;
+    internal int EnemyDamage { get; private set; } = 4;
 
-    internal void Pass()
+    internal bool TryPass(IEnumerable<TPlayer> livingPlayers, Func<TPlayer, ulong> playerId, Func<int, int> roll)
     {
-        Holder += upgraded ? 1 : 2;
-        Enemies += upgraded ? 3 : 4;
+        // Screen order may differ between peers. Network IDs give every roll the same recipient.
+        var holderId = playerId(Holder);
+        var candidates = livingPlayers.Where(p => playerId(p) != holderId).OrderBy(playerId).ToArray();
+        if (candidates.Length == 0) return false;
+        Holder = candidates.Length == 1 ? candidates[0] : candidates[roll(candidates.Length)];
+        HolderDamage += upgraded ? 1 : 2;
+        EnemyDamage += upgraded ? 3 : 4;
+        return true;
+    }
+}
+
+internal struct EchoTurn<TCardType> where TCardType : struct, Enum
+{
+    private TCardType? _opening;
+    private bool _awaitingReply;
+
+    internal void Begin()
+    {
+        _opening = null;
+        _awaitingReply = true;
+    }
+
+    internal void OpenWith(TCardType type)
+    {
+        if (_awaitingReply) _opening ??= type;
+    }
+
+    internal bool TryReply(TCardType type)
+    {
+        if (!_awaitingReply || _opening is not { } opening) return false;
+        _awaitingReply = false;
+        return EqualityComparer<TCardType>.Default.Equals(opening, type);
     }
 }
 

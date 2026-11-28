@@ -4,9 +4,10 @@
   "GF_WORK_POLICY.title": "Workers’ Policy",
   "GF_WORK_POLICY.description": "The next enemy attack that costs you HP and leaves you alive heals you for 5. The issuer draws 1 extra next turn.",
   "GF_ECHO_POWER.title": "Same Here",
-  "GF_ECHO_POWER.description": "Match your partner's first card type each turn to give both of you Block.",
+  "GF_ECHO_POWER.description": "Each turn, if the first card your partner plays after your opening card matches its type, you both gain Block.",
+  "GF_ECHO_POWER.smartDescription": "Each turn, if the first card {ApplierName} plays after {OwnerName}'s opening card matches its type, both gain {Amount} Block.",
   "GF_APPLAUSE_POWER.title": "Big Spender",
   "GF_APPLAUSE_POWER.description": "Triggers on an ally actually spending 2 or more Energy on one card, once per turn.",
   "GF_POT_POWER.title": "Holding the Pot",
-  "GF_POT_POWER.description": "End the turn now to take {Self} damage and deal {Area} to each enemy. Play a card to pass, or skip to keep it."
+  "GF_POT_POWER.description": "After you play a card, the pot automatically passes to a random living teammate. If you hold it when the team ends the turn, take {Self} damage and deal {Area} damage to each enemy."
 }

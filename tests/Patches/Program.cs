@@ -69,6 +69,8 @@ void Check(TypeDefinition patch, MethodDefinition? target)
         return;
     }
     count++;
+    var sharedState = patch.Methods.FirstOrDefault(m => m.Name == "Prefix")?.Parameters
+        .FirstOrDefault(p => p.Name == "__state")?.ParameterType as ByReferenceType;
     foreach (var hook in patch.Methods.Where(m => m.Name is "Prefix" or "Postfix"))
     foreach (var argument in hook.Parameters)
     {
@@ -76,6 +78,7 @@ void Check(TypeDefinition patch, MethodDefinition? target)
         {
             "__instance" => target.IsStatic ? null : target.DeclaringType,
             "__result" => target.ReturnType,
+            "__state" => sharedState?.ElementType,
             _ => target.Parameters.SingleOrDefault(p => p.Name == argument.Name)?.ParameterType,
         };
         var declaredType = argument.ParameterType is ByReferenceType reference ? reference.ElementType : argument.ParameterType;

@@ -2,12 +2,11 @@ using MegaCrit.Sts2.Core.Models.Cards;
 
 namespace GoodFriend;
 
-public sealed class GfWorkCover() : FriendCard(1, CardType.Skill, CardRarity.Uncommon, TargetType.AnyAlly)
+public sealed class GfWorkCover() : TeammateCard(1, CardType.Skill, CardRarity.Uncommon)
 {
     public override IEnumerable<CardKeyword> CanonicalKeywords => [CardKeyword.Exhaust];
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
+    protected override async Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player insured)
     {
-        Player insured = Ally(play);
         await Hit(ctx, Owner.Creature, 1, true);
         if (insured.Creature.IsAlive && !Rules.PaidWorkers.Contains(insured) && !insured.Creature.HasPower<GfWorkPolicy>())
             await PowerCmd.Apply<GfWorkPolicy>(ctx, insured.Creature, IsUpgraded ? 2 : 1, Owner.Creature, this);
@@ -20,12 +19,11 @@ public sealed class GfHotPot() : FriendCard(0, CardType.Skill, CardRarity.Uncomm
     protected override Task OnPlay(PlayerChoiceContext ctx, CardPlay play) => Rules.StartPot(ctx, this, play);
 }
 
-public sealed class GfDontGreed() : FriendCard(1, CardType.Skill, CardRarity.Uncommon, TargetType.AnyAlly)
+public sealed class GfDontGreed() : TeammateCard(1, CardType.Skill, CardRarity.Uncommon)
 {
     protected override IEnumerable<DynamicVar> CanonicalVars => [new BlockVar(8, ValueProp.Move)];
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
+    protected override async Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player player)
     {
-        var player = Ally(play);
         await CreatureCmd.GainBlock(player.Creature, DynamicVars.Block, play);
         for (int n = 0; n < 2; n++)
         {
@@ -46,25 +44,21 @@ public sealed class GfLightsOut() : FriendCard(1, CardType.Skill, CardRarity.Unc
     }
 }
 
-public sealed class GfSameHere() : FriendCard(1, CardType.Power, CardRarity.Uncommon, TargetType.AnyAlly)
+public sealed class GfSameHere() : TeammateCard(1, CardType.Power, CardRarity.Uncommon)
 {
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
-    {
-        Rules.Partners.Add(new(Owner, Ally(play), Level(5, 6), CombatState!.RoundNumber));
-        await PowerCmd.Apply<GfEchoPower>(ctx, Owner.Creature, 1, Owner.Creature, this);
-    }
+    protected override Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player teammate)
+        => PowerCmd.Apply<GfEchoPower>(ctx, teammate.Creature, Level(5, 6), Owner.Creature, this);
 }
 
-public sealed class GfKeyboard() : FriendCard(1, CardType.Skill, CardRarity.Rare, TargetType.AnyAlly)
+public sealed class GfKeyboard() : TeammateCard(1, CardType.Skill, CardRarity.Rare)
 {
     public override IEnumerable<CardKeyword> CanonicalKeywords => [CardKeyword.Exhaust];
     protected override bool IsPlayable => Owner.PlayerCombatState?.Hand.Cards.Any(c => c.Type == CardType.Attack) == true;
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
+    protected override async Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player recipient)
     {
         var chosen = await CardSelectCmd.FromHandForDiscard(ctx, Owner,
             new CardSelectorPrefs(CardSelectorPrefs.DiscardSelectionPrompt, 1), c => c.Type == CardType.Attack, this);
         if (chosen.FirstOrDefault() is not { } original) return;
-        Player recipient = Ally(play);
         await CardCmd.Discard(ctx, original);
         var copy = original.CreateCloneForPlayer(recipient);
         CardCmd.ApplyKeyword(copy, CardKeyword.Ethereal, CardKeyword.Exhaust);
@@ -74,19 +68,18 @@ public sealed class GfKeyboard() : FriendCard(1, CardType.Skill, CardRarity.Rare
     }
 }
 
-public sealed class GfInsurance() : FriendCard(2, CardType.Skill, CardRarity.Rare, TargetType.AnyPlayer)
+public sealed class GfInsurance() : TeammateCard(2, CardType.Skill, CardRarity.Rare)
 {
     public override IEnumerable<CardKeyword> CanonicalKeywords => [CardKeyword.Exhaust];
-    protected override Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
-        => PowerCmd.Apply<GfDeathPolicy>(ctx, play.Target ?? Owner.Creature, Level(1, 2), Owner.Creature, this);
+    protected override Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player teammate)
+        => PowerCmd.Apply<GfDeathPolicy>(ctx, teammate.Creature, Level(1, 2), Owner.Creature, this);
 }
 
-public sealed class GfSavePotion() : FriendCard(1, CardType.Skill, CardRarity.Uncommon, TargetType.AnyAlly)
+public sealed class GfSavePotion() : TeammateCard(1, CardType.Skill, CardRarity.Uncommon)
 {
     protected override IEnumerable<DynamicVar> CanonicalVars => [new BlockVar(8, ValueProp.Move)];
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
+    protected override async Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player friend)
     {
-        var friend = Ally(play);
         await CreatureCmd.GainBlock(friend.Creature, DynamicVars.Block, play);
         Rules.Potions.Add((Owner, friend));
     }
@@ -114,13 +107,12 @@ public sealed class GfScrap() : FriendCard(1, CardType.Skill, CardRarity.Uncommo
     protected override void OnUpgrade() => AddKeyword(CardKeyword.Retain);
 }
 
-public sealed class GfLogOff() : FriendCard(0, CardType.Skill, CardRarity.Rare, TargetType.AnyAlly)
+public sealed class GfLogOff() : TeammateCard(0, CardType.Skill, CardRarity.Rare)
 {
     public override IEnumerable<CardKeyword> CanonicalKeywords => [CardKeyword.Exhaust];
     protected override bool HasEnergyCostX => true;
-    protected override async Task OnPlay(PlayerChoiceContext ctx, CardPlay play)
+    protected override async Task PlayForTeammate(PlayerChoiceContext ctx, CardPlay play, Player recipient)
     {
-        var recipient = Ally(play);
         await PlayerCmd.GainEnergy(ResolveEnergyXValue() + 1, recipient);
         await CardPileCmd.Draw(ctx, Level(1, 2), recipient);
         PlayerCmd.EndTurn(Owner, canBackOut: false);

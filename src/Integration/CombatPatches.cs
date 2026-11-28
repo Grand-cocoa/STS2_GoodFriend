@@ -5,6 +5,15 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace GoodFriend;
 
+[HarmonyPatch(typeof(CardModel), nameof(CardModel.IsValidTarget))]
+internal static class TeammateTarget
+{
+    private static void Postfix(CardModel __instance, Creature? target, ref bool __result)
+    {
+        if (__result && __instance is TeammateCard card) __result = card.GetTeammate(target) != null;
+    }
+}
+
 [HarmonyPatch(typeof(CombatManager), nameof(CombatManager.SetReadyToEndTurn))]
 internal static class EndEnergySnapshot
 {

@@ -17,15 +17,6 @@ public sealed class GfWorkPolicy : FriendPower
 {
     internal override string Illustration => "GF_WORK_COVER";
 }
-public sealed class GfEchoPower : FriendPower
-{
-    internal override string Illustration => "GF_SAME_HERE";
-    public override Task AfterRemoved(Creature oldOwner)
-    {
-        if (oldOwner.CombatState is { } state) FriendCombat.For(state).Partners.RemoveAll(p => p.Owner == oldOwner.Player);
-        return Task.CompletedTask;
-    }
-}
 public sealed class GfApplausePower : FriendPower
 {
     internal override string Illustration => "GF_BIG_SPENDER";
@@ -45,8 +36,8 @@ public sealed class GfPotPower : FriendPower
             var text = base.Description;
             var pots = IsMutable && Owner?.CombatState is { } state
                 ? FriendCombat.For(state).Pots.Where(p => p.Holder == Owner.Player).ToArray() : [];
-            text.Add("Self", pots.Length == 0 ? 5 : pots.Sum(p => p.Damage.Holder));
-            text.Add("Area", pots.Length == 0 ? 4 : pots.Sum(p => p.Damage.Enemies));
+            text.Add("Self", pots.Length == 0 ? 5 : pots.Sum(p => p.HolderDamage));
+            text.Add("Area", pots.Length == 0 ? 4 : pots.Sum(p => p.EnemyDamage));
             return text;
         }
     }
